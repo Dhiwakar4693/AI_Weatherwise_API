@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WeatherWise</title>
+<style>
+  :root{
+    --blue:#2563eb;
+    --blue-dark:#1d4ed8;
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --border:#e2e8f0;
+    --text:#1e293b;
+    --muted:#64748b;
+    --red:#dc2626;
+    --green:#16a34a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  header{
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header h1{
+    font-size:20px;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .api-config{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .api-config input{
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-size:13px;
+    width:220px;
+  }
+  .status-dot{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    margin-right:6px;
+    background:#cbd5e1;
+  }
+  .status-dot.ok{background:var(--green);}
+  .status-dot.bad{background:var(--red);}
+  .status-dot.pending{background:#f59e0b;}
+  .status-pill{
+    display:flex;
+    align-items:center;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+    padding:6px 10px;
+    border:1px solid var(--border);
+    border-radius:99px;
+    background:#fff;
+  }
+  .status-pill:hover{background:#f8fafc;}
+  .settings-panel{
+    display:none;
+    position:absolute;
+    top:56px;
+    right:20px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+    z-index:50;
+    width:280px;
+  }
+  .settings-panel.open{display:block;}
+  .settings-panel label{margin-top:0;}
+  .user-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14px;
+  }
+  .user-bar button{
+    background:none;
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+    color:var(--text);
+  }
+  .user-bar button:hover{background:#f1f5f9;}
+
+  main{
+    max-width:960px;
+    margin:0 auto;
+    padding:20px;
+  }
+
+  /* Tabs */
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .tab-btn{
+    padding:9px 16px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--card);
+    cursor:pointer;
+    font-size:14px;
+    color:var(--muted);
+  }
+  .tab-btn.active{
+    background:var(--blue);
+    border-color:var(--blue);
+    color:#fff;
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    margin:0 0 14px 0;
+    font-size:16px;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  input, select{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    margin-bottom:12px;
+  }
+  .row{
+    display:flex;
+    gap:12px;
+  }
+  .row > div{flex:1;}
+  button.primary{
+    background:var(--blue);
+    color:#fff;
+    border:none;
+    padding:11px 18px;
+    border-radius:8px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  button.primary:hover{background:var(--blue-dark);}
+  button.primary:disabled{opacity:.6;cursor:not-allowed;}
+  button.secondary{
+    background:#fff;
+    border:1px solid var(--border);
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  button.secondary:hover{background:#f1f5f9;}
+  button.link{
+    background:none;
+    border:none;
+    color:var(--blue);
+    cursor:pointer;
+    font-size:13px;
+    padding:0;
+  }
+  .msg{
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:13px;
+    margin-bottom:12px;
+    display:none;
+  }
+  .msg.error{background:#fef2f2;color:var(--red);display:block;}
+  .msg.success{background:#f0fdf4;color:var(--green);display:block;}
+  .msg.info{background:#eff6ff;color:var(--blue-dark);display:block;}
+
+  .switch-line{
+    text-align:center;
+    font-size:13px;
+    color:var(--muted);
+    margin-top:6px;
+  }
+
+  .weather-result{
+    margin-top:14px;
+    padding:16px;
+    background:#f8fafc;
+    border-radius:8px;
+    display:none;
+  }
+  .weather-result.show{display:block;}
+  .weather-temp{
+    font-size:36px;
+    font-weight:600;
+  }
+  .weather-meta{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:4px;
+  }
+  .weather-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-top:14px;
+  }
+  .weather-stat{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .weather-stat .val{font-size:16px;font-weight:600;}
+  .weather-stat .lab{font-size:11px;color:var(--muted);}
+
+  .mock-tag{
+    display:inline-block;
+    background:#fef3c7;
+    color:#92400e;
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:99px;
+    margin-left:8px;
+  }
+
+  .loc-list{
+    list-style:none;
+    padding:0;
+    margin:0;
+  }
+  .loc-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    margin-bottom:8px;
+  }
+  .loc-item .name{font-weight:500;}
+  .loc-item .actions{display:flex;gap:8px;}
+  .empty-state{
+    text-align:center;
+    color:var(--muted);
+    font-size:14px;
+    padding:30px 10px;
+  }
+
+  .ai-box{
+    background:#f8fafc;
+    border-radius:8px;
+    padding:14px;
+    margin-top:12px;
+    font-size:14px;
+    line-height:1.5;
+    display:none;
+    white-space:pre-wrap;
+  }
+  .ai-box.show{display:block;}
+
+  .locked-note{
+    text-align:center;
+    color:var(--muted);
+    padding:30px 10px;
+    font-size:14px;
+  }
+  .locked-note button{margin-top:10px;}
+
+  .spinner{
+    display:inline-block;
+    width:14px;height:14px;
+    border:2px solid rgba(255,255,255,.5);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:6px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  @media (max-width:640px){
+    .row{flex-direction:column;}
+    .weather-grid{grid-template-columns:repeat(3,1fr);}
+    header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌤️ WeatherWise</h1>
+  <div style="display:flex;align-items:center;gap:12px;position:relative;">
+    <div class="status-pill" id="statusPill" onclick="toggleSettings()">
+      <span class="status-dot pending" id="statusDot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+    <div class="settings-panel" id="settingsPanel">
+      <label>Server address</label>
+      <input id="apiBaseInput" placeholder="http://localhost:5000" />
+      <button class="primary" style="width:100%;" onclick="manualConnect()">Connect</button>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;">
+        Only needed if auto-detect can't find your server. Just enter the address it's running on (whatever port you started it on).
+      </div>
+    </div>
+    <div class="user-bar" id="userBar"></div>
+  </div>
+</header>
+
+<main>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="weather">Weather</button>
+    <button class="tab-btn" data-tab="favorites">Favorites</button>
+    <button class="tab-btn" data-tab="account">Account</button>
+  </div>
+
+  <!-- WEATHER TAB -->
+  <div class="panel active" id="panel-weather">
+    <div class="card">
+      <h2>Check the weather</h2>
+      <div id="weatherMsg" class="msg"></div>
+      <div class="row">
+        <div>
+          <label>City</label>
+          <input id="weatherCity" placeholder="e.g. Chennai" onkeydown="if(event.key==='Enter')checkWeather()" />
+        </div>
+      </div>
+      <button class="primary" id="weatherBtn" onclick="checkWeather()">Get weather</button>
+
+      <div class="weather-result" id="weatherResult">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;">
+          <div>
+            <div class="weather-temp"><span id="wTemp">-</span>°C</div>
+            <div class="weather-meta"><span id="wCity">-</span> · <span id="wCondition">-</span><span id="wMockTag"></span></div>
+          </div>
+          <button class="secondary" id="wSaveBtn" onclick="saveCurrentAsFavorite()">☆ Save to favorites</button>
+        </div>
+        <div class="weather-grid">
+          <div class="weather-stat"><div class="val" id="wHumidity">-</div><div class="lab">Humidity</div></div>
+          <div class="weather-stat"><div class="val" id="wWind">-</div><div class="lab">Wind speed</div></div>
+          <div class="weather-stat"><div class="val" id="wCond2">-</div><div class="lab">Condition</div></div>
+        </div>
+
+        <div id="aiSection" style="margin-top:16px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="secondary" onclick="getAiSummary()" id="aiSummaryBtn">✨ AI summary</button>
+            <button class="secondary" onclick="getAiRecommendation()" id="aiRecBtn">👕 What to wear</button>
+          </div>
+          <div class="ai-box" id="aiBox"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVORITES TAB -->
+  <div class="panel" id="panel-favorites">
+    <div class="card" id="favCard">
+      <h2>Favorite locations</h2>
+      <div id="favMsg" class="msg"></div>
+      <div class="locked-note" id="favLocked" style="display:none;">
+        Log in to save and manage your favorite locations.
+        <div><button class="primary" onclick="switchTab('account')">Go to account</button></div>
+      </div>
+      <div id="favContent" style="display:none;">
+        <div class="row">
+          <div>
+            <label>City</label>
+            <input id="favCity" placeholder="e.g. Mumbai" />
+          </div>
+          <div>
+            <label>Country</label>
+            <input id="favCountry" placeholder="e.g. India" />
+          </div>
+        </div>
+        <button class="primary" onclick="addFavorite()">Add to favorites</button>
+
+        <ul class="loc-list" id="favList" style="margin-top:18px;"></ul>
+        <div class="empty-state" id="favEmpty" style="display:none;">No favorite locations yet. Add one above.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT TAB -->
+  <div class="panel" id="panel-account">
+
+    <div class="card" id="loggedOutCard">
+      <h2 id="authTitle">Log in</h2>
+      <div id="authMsg" class="msg"></div>
+
+      <div id="nameField" style="display:none;">
+        <label>Name</label>
+        <input id="authName" placeholder="Your name" />
+      </div>
+      <label>Email</label>
+      <input id="authEmail" placeholder="you@example.com" type="email" />
+      <label>Password</label>
+      <input id="authPassword" placeholder="At least 6 characters" type="password" onkeydown="if(event.key==='Enter')submitAuth()" />
+
+      <button class="primary" id="authBtn" onclick="submitAuth()">Log in</button>
+      <div class="switch-line">
+        <span id="switchText">Don't have an account?</span>
+        <button class="link" onclick="toggleAuthMode()" id="switchBtn">Register</button>
+      </div>
+    </div>
+
+    <div class="card" id="loggedInCard" style="display:none;">
+      <h2>Your profile</h2>
+      <div class="row">
+        <div>
+          <label>Name</label>
+          <input id="profileName" disabled />
+        </div>
+        <div>
+          <label>Email</label>
+          <input id="profileEmail" disabled />
+        </div>
+      </div>
+      <button class="secondary" onclick="logout()">Log out</button>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+let API_BASE = null; // resolved automatically, e.g. http://localhost:5000/api
+let token = localStorage.getItem('ww_token') || null;
+let currentUser = JSON.parse(localStorage.getItem('ww_user') || 'null');
+let isRegisterMode = false;
+let lastWeather = null; // last fetched weather data, for AI + save-favorite actions
+
+// ---------- auto-connect ----------
+// Tries the ports a Node/Express backend like this is commonly started on.
+const CANDIDATE_PORTS = [5000, 5001, 3000, 8000, 4000, 8080, 3001];
+const savedBase = localStorage.getItem('ww_api_root'); // e.g. http://localhost:5000
+
+function toggleSettings(){
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+function setStatus(state, text){
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  dot.className = 'status-dot ' + state;
+  label.textContent = text;
+}
+
+async function pingRoot(root){
+  try{
+    const ctrl = new AbortController();
+    const t = setTimeout(()=>ctrl.abort(), 1500);
+    const res = await fetch(root + '/', {signal: ctrl.signal});
+    clearTimeout(t);
+    if(!res.ok) return false;
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+async function autoConnect(){
+  setStatus('pending', 'Connecting...');
+
+  // 1) try whatever worked last time
+  const tryList = [];
+  if(savedBase) tryList.push(savedBase);
+  // 2) use the current origin first when the backend is serving this page
+  if(location.protocol.startsWith('http')){
+    tryList.push(location.origin);
+    // Also try common backend ports when the page is hosted separately.
+    CANDIDATE_PORTS.forEach(p => tryList.push(`${location.protocol}//${location.hostname}:${p}`));
+  }
+  // 3) plain localhost fallbacks (covers opening the file directly, protocol "file://")
+  CANDIDATE_PORTS.forEach(p => tryList.push(`http://localhost:${p}`));
+
+  const seen = new Set();
+  for(const root of tryList){
+    if(seen.has(root)) continue;
+    seen.add(root);
+    if(await pingRoot(root)){
+      connectTo(root);
+      return;
+    }
+  }
+  setStatus('bad', 'Server not found');
+  document.getElementById('settingsPanel').classList.add('open');
+}
+
+function connectTo(root){
+  root = root.trim().replace(/\/$/, '');
+  API_BASE = root + '/api';
+  localStorage.setItem('ww_api_root', root);
+  const shortHost = root.replace(/^https?:\/\//, '');
+  setStatus('ok', 'Connected · ' + shortHost);
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+
+async function manualConnect(){
+  const val = document.getElementById('apiBaseInput').value.trim();
+  if(!val) return;
+  setStatus('pending', 'Connecting...');
+  const root = val.replace(/\/api\/?$/, '').replace(/\/$/, '');
+  if(await pingRoot(root)){
+    connectTo(root);
+    showToastMsg('weatherMsg', 'Connected to server.', 'success');
+  }else{
+    setStatus('bad', 'Server not found');
+    showToastMsg('weatherMsg', "Couldn't reach a server at that address.", 'error');
+  }
+}
+
+// ---------- helpers ----------
+
+function showToastMsg(elId, text, type){
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+  el.style.display = 'block';
+  if(type !== 'error'){
+    setTimeout(()=>{ el.style.display='none'; }, 3500);
+  }
+}
+function hideMsg(elId){
+  document.getElementById(elId).style.display='none';
+}
+
+async function api(path, options={}){
+  if(!API_BASE){
+    document.getElementById('settingsPanel').classList.add('open');
+    throw new Error("Not connected to a server yet. Enter its address on the right and click Connect.");
+  }
+  const headers = options.headers || {};
+  headers['Content-Type'] = 'application/json';
+  if(token) headers['Authorization'] = 'Bearer ' + token;
+  let res, data;
+  try{
+    res = await fetch(API_BASE + path, {...options, headers});
+  }catch(e){
+    setStatus('bad', 'Connection lost');
+    throw new Error('Lost connection to the server. Check that it is still running.');
+  }
+  try{
+    data = await res.json();
+  }catch(e){
+    data = {};
+  }
+  if(!res.ok){
+    throw new Error(data.message || ('Request failed (' + res.status + ')'));
+  }
+  return data;
+}
+
+// ---------- tabs ----------
+document.getElementById('tabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.tab-btn');
+  if(!btn) return;
+  switchTab(btn.dataset.tab);
+});
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+name));
+  if(name==='favorites') refreshFavoritesView();
+}
+
+// ---------- auth UI ----------
+function renderUserBar(){
+  const bar = document.getElementById('userBar');
+  if(currentUser){
+    bar.innerHTML = `<span>Hi, ${escapeHtml(currentUser.name)}</span><button onclick="logout()">Log out</button>`;
+  } else {
+    bar.innerHTML = `<button onclick="switchTab('account')">Log in</button>`;
+  }
+  document.getElementById('loggedOutCard').style.display = currentUser ? 'none' : 'block';
+  document.getElementById('loggedInCard').style.display = currentUser ? 'block' : 'none';
+  if(currentUser){
+    document.getElementById('profileName').value = currentUser.name;
+    document.getElementById('profileEmail').value = currentUser.email;
+  }
+}
+
+function toggleAuthMode(){
+  isRegisterMode = !isRegisterMode;
+  document.getElementById('authTitle').textContent = isRegisterMode ? 'Create account' : 'Log in';
+  document.getElementById('nameField').style.display = isRegisterMode ? 'block' : 'none';
+  document.getElementById('authBtn').textContent = isRegisterMode ? 'Create account' : 'Log in';
+  document.getElementById('switchText').textContent = isRegisterMode ? 'Already have an account?' : "Don't have an account?";
+  document.getElementById('switchBtn').textContent = isRegisterMode ? 'Log in' : 'Register';
+  hideMsg('authMsg');
+}
+
+async function submitAuth(){
+  hideMsg('authMsg');
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const name = document.getElementById('authName').value.trim();
+
+  if(!email || !password || (isRegisterMode && !name)){
+    showToastMsg('authMsg', 'Please fill in all fields.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('authBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Please wait...';
+
+  try{
+    const path = isRegisterMode ? '/auth/register' : '/auth/login';
+    const body = isRegisterMode ? {name, email, password} : {email, password};
+    const data = await api(path, {method:'POST', body: JSON.stringify(body)});
+    token = data.data.token;
+    currentUser = {name: data.data.name, email: data.data.email};
+    localStorage.setItem('ww_token', token);
+    localStorage.setItem('ww_user', JSON.stringify(currentUser));
+    document.getElementById('authEmail').value='';
+    document.getElementById('authPassword').value='';
+    document.getElementById('authName').value='';
+    renderUserBar();
+    switchTab('weather');
+  }catch(e){
+    showToastMsg('authMsg', e.message, 'error');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = isRegisterMode ? 'Create account' : 'Log in';
+  }
+}
+
+function logout(){
+  token = null;
+  currentUser = null;
+  localStorage.removeItem('ww_token');
+  localStorage.removeItem('ww_user');
+  renderUserBar();
+  refreshFavoritesView();
+}
+
+// ---------- weather ----------
+async function checkWeather(){
+  hideMsg('weatherMsg');
+  const city = document.getElementById('weatherCity').value.trim();
+  if(!city){
+    showToastMsg('weatherMsg', 'Please enter a city name.', 'error');
+    return;
+  }
+  const btn = document.getElementById('weatherBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Loading...';
+  document.getElementById('aiBox').classList.remove('show');
+
+  try{
+    const res = await api('/weather/' + encodeURIComponent(city), {method:'GET'});
+    const w = res.data;
+    lastWeather = w;
+    document.getElementById('wTemp').textContent = Math.round(w.temperature);
+    document.getElementById('wCity').textContent = w.city;
+    document.getElementById('wCondition').textContent = w.condition;
+    document.getElementById('wCond2').textContent = w.condition;
+    document.getElementById('wHumidity').textContent = w.humidity + '%';
+    document.getElementById('wWind').textContent = w.windSpeed + ' m/s';
+    document.getElementById('wMockTag').innerHTML = w.isMock ? '<span class="mock-tag">sample data</span>' : '';
+    document.getElementById('weatherResult').classList.add('show');
+  }catch(e){
+    document.getElementById('weatherResult').classList.remove('show');
+    showToastMsg('weatherMsg', e.message, 'error');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Get weather';
+  }
+}
+
+async function saveCurrentAsFavorite(){
+  if(!lastWeather) return;
+  if(!currentUser){
+    showToastMsg('weatherMsg', 'Log in to save favorite locations.', 'error');
+    switchTab('account');
+    return;
+  }
+  const country = prompt('Which country is ' + lastWeather.city + ' in?');
+  if(!country) return;
+  try{
+    await api('/locations', {method:'POST', body: JSON.stringify({city: lastWeather.city, country})});
+    showToastMsg('weatherMsg', lastWeather.city + ' saved to favorites.', 'success');
+  }catch(e){
+    showToastMsg('weatherMsg', e.message, 'error');
+  }
+}
+
+async function getAiSummary(){
+  if(!lastWeather) return;
+  if(!currentUser){
+    showToastMsg('weatherMsg', 'Log in to use AI insights.', 'error');
+    switchTab('account');
+    return;
+  }
+  const box = document.getElementById('aiBox');
+  box.classList.add('show');
+  box.textContent = 'Thinking...';
+  try{
+    const res = await api('/ai/weather-summary', {method:'POST', body: JSON.stringify({
+      city: lastWeather.city,
+      temperature: lastWeather.temperature,
+      humidity: lastWeather.humidity,
+      condition: lastWeather.condition
+    })});
+    box.textContent = res.summary;
+  }catch(e){
+    box.textContent = 'Could not get an AI summary: ' + e.message;
+  }
+}
+
+async function getAiRecommendation(){
+  if(!lastWeather) return;
+  if(!currentUser){
+    showToastMsg('weatherMsg', 'Log in to use AI insights.', 'error');
+    switchTab('account');
+    return;
+  }
+  const box = document.getElementById('aiBox');
+  box.classList.add('show');
+  box.textContent = 'Thinking...';
+  try{
+    const res = await api('/ai/weather-recommendation', {method:'POST', body: JSON.stringify({
+      temperature: lastWeather.temperature,
+      condition: lastWeather.condition
+    })});
+    box.textContent = res.recommendation;
+  }catch(e){
+    box.textContent = 'Could not get a recommendation: ' + e.message;
+  }
+}
+
+// ---------- favorites ----------
+function refreshFavoritesView(){
+  const locked = !currentUser;
+  document.getElementById('favLocked').style.display = locked ? 'block' : 'none';
+  document.getElementById('favContent').style.display = locked ? 'none' : 'block';
+  if(!locked) loadFavorites();
+}
+
+async function loadFavorites(){
+  hideMsg('favMsg');
+  try{
+    const res = await api('/locations', {method:'GET'});
+    renderFavorites(res.data);
+  }catch(e){
+    showToastMsg('favMsg', e.message, 'error');
+  }
+}
+
+function renderFavorites(locations){
+  const list = document.getElementById('favList');
+  const empty = document.getElementById('favEmpty');
+  list.innerHTML = '';
+  if(!locations.length){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  locations.forEach(loc=>{
+    const li = document.createElement('li');
+    li.className = 'loc-item';
+    li.innerHTML = `
+      <span class="name">${escapeHtml(loc.city)}, ${escapeHtml(loc.country)}</span>
+      <span class="actions">
+        <button class="secondary" onclick="checkFavoriteWeather('${escapeAttr(loc.city)}')">View weather</button>
+        <button class="secondary" onclick="editFavorite('${loc._id}','${escapeAttr(loc.city)}','${escapeAttr(loc.country)}')">Edit</button>
+        <button class="secondary" onclick="removeFavorite('${loc._id}')">Remove</button>
+      </span>`;
+    list.appendChild(li);
+  });
+}
+
+function checkFavoriteWeather(city){
+  document.getElementById('weatherCity').value = city;
+  switchTab('weather');
+  checkWeather();
+}
+
+async function addFavorite(){
+  hideMsg('favMsg');
+  const city = document.getElementById('favCity').value.trim();
+  const country = document.getElementById('favCountry').value.trim();
+  if(!city || !country){
+    showToastMsg('favMsg', 'Please provide both city and country.', 'error');
+    return;
+  }
+  try{
+    await api('/locations', {method:'POST', body: JSON.stringify({city, country})});
+    document.getElementById('favCity').value='';
+    document.getElementById('favCountry').value='';
+    showToastMsg('favMsg', 'Location added.', 'success');
+    loadFavorites();
+  }catch(e){
+    showToastMsg('favMsg', e.message, 'error');
+  }
+}
+
+async function editFavorite(id, oldCity, oldCountry){
+  const city = prompt('City', oldCity);
+  if(city===null) return;
+  const country = prompt('Country', oldCountry);
+  if(country===null) return;
+  try{
+    await api('/locations/' + id, {method:'PUT', body: JSON.stringify({city, country})});
+    loadFavorites();
+  }catch(e){
+    showToastMsg('favMsg', e.message, 'error');
+  }
+}
+
+async function removeFavorite(id){
+  if(!confirm('Remove this location from favorites?')) return;
+  try{
+    await api('/locations/' + id, {method:'DELETE'});
+    loadFavorites();
+  }catch(e){
+    showToastMsg('favMsg', e.message, 'error');
+  }
+}
+
+// ---------- utils ----------
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str){
+  return String(str).replace(/'/g, "\\'");
+}
+
+// ---------- init ----------
+renderUserBar();
+autoConnect();
+</script>
+
+</body>
+</html>
