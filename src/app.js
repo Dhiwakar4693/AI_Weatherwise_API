@@ -14,9 +14,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API Base Route
+// Frontend
 app.get('/', (req, res) => {
-  res.sendFile(path.resolve(__dirname, '../../weatherwise-frontend.html'));
+  res.sendFile(path.resolve(__dirname, '../weatherwise-frontend.html'));
 });
 
 // Routing Registry
